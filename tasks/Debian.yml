@@ -1,0 +1,57 @@
+---
+- name: Debian | Add CloudStack repo 
+  apt_repository: >
+   repo='deb http://cloudstack.apt-get.eu/ubuntu trusty 4.4'
+   state=present
+
+- name: Debian | Add CloudStack repo key
+  apt_key: >
+   url=http://cloudstack.apt-get.eu/release.asc
+   state=present
+
+- name: Debian | install packages
+  apt: >
+   name=cloudstack-agent
+   state=latest
+   update_cache=yes
+
+- name: Debian | copy libvirtd.conf file
+  template: >
+   src=Debian/libvirtd.conf.j2
+   dest=/etc/libvirt/libvirtd.conf
+   owner=root group=root mode=0644
+
+- name: Debian | copy libvirt-bin file
+  template: >
+   src=Debian/libvirt-bin.j2
+   dest=/etc/default/libvirt-bin
+   owner=root group=root mode=0644
+
+- name: Debian | copy qemu.conf file
+  template: >
+   src=Debian/qemu.conf.j2
+   dest=/etc/libvirt/qemu.conf
+   owner=root group=root mode=0644
+
+- name: Debian | relax apparmor security precautions
+  file: >
+   src={{ item.src }}
+   dest={{ item.dest }}
+   state=link
+   owner=root group=root mode=0644
+  with_items:
+   - src: /etc/apparmor.d/usr.sbin.libvirtd
+     dest: /etc/apparmor.d/disable/usr.sbin.libvirtd
+   - src: /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper
+     dest: /etc/apparmor.d/disable/usr.lib.libvirt.virt-aa-helper
+
+#- name: Debian | relax apparmor security precautions part2
+#  command: 'apparmor_parser -R {{ item }}'
+#  with_items:
+#   - /etc/apparmor.d/usr.sbin.libvirtd
+#   - /etc/apparmor.d/usr.lib.libvirt.virt-aa-helper
+
+- name: Debian | allow our cloudstack user access to a tty
+  lineinfile: >
+   dest=/etc/sudoers
+   line='Defaults:cloudstack !requiretty'
